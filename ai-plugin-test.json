@@ -1,0 +1,174 @@
+{
+  "schema_version": "v2",
+  "name_for_model": "phonebeta1",
+  "name_for_human": "phonebeta1",
+  "description_for_human": "phonebeta",
+  "description_for_model": "Allows you to get the contact list via phone, get message list via phone, send message via phone and to get support information of the plugin.",
+  "namespace": "phonebeta",
+  "contact_email": "phonepluginall@microsoft.com",
+  "privacy_policy_url": "https://privacy.com",
+  "legal_info_url": "https://legal.com",
+  "logo_url": "https://th.bing.com/th?id=OSK.0B409C674E6CEF21CD39E53CA9812D86",
+  "functions": [
+    {
+      "name": "getContactList",
+      "description": "Get contact list via phone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer",
+            "description": "The size of the contact list, which is optional, just set it to 100 unless it is explicitly specified."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the contact for filter."
+          }
+        }
+      },
+      "states": {
+        "reasoning": {
+          "description": "\n# `getContactList(top: int = 100, name: str = '') -> str` returns the contact from phone. `top`: the size of the contact list, which is optional, just set it to 100 unless it is explicitly specified; `name`: optional, the name of the contact for filter.",
+          "instructions": "\n- Decide whether to invoke `getContactList(top, name)`:\n    - Check the last user message in the `conversation_memory` and the tool invocation history in the `turn_memory`:\n    - Based on the `result` from `turn_memory`, do I need to get contacts from the phone in order to respond to the user message accurately? If so, invoke `getContactList(top, name)`\n"
+        },
+        "responding": {
+          "description": "\n- `getContactList() -> str` returns the contact result in JSON format.",
+          "instructions": "\n- Examine the output of `getContactList() -> str`.\n    - Extract and include as much relevant information as possible from the JSON result to meet the user's needs.\n"
+        },
+        "disengaging": {
+          "description": "",
+          "instructions": ""
+        }
+      }
+    },
+    {
+      "name": "getMessageList",
+      "description": "Get message list via phone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer",
+            "description": "The size of the message list, which is optional, just set it to 100 unless it is explicitly specified."
+          },
+          "contactName": {
+            "type": "string",
+            "description": "The name of the contact for filtering messages."
+          },
+          "read": {
+            "type": "boolean",
+            "description": "The read state for filtering messages, true if the message has been read, false if unread."
+          },
+          "dateBegin": {
+            "type": "string",
+            "description": "The start date in YYYY-MM-DDThh:mm:ss format for filtering messages."
+          },
+          "dateEnd": {
+            "type": "string",
+            "description": "The end date in YYYY-MM-DDThh:mm:ss format for filtering messages."
+          }
+        }
+      },
+      "states": {
+        "reasoning": {
+          "description": "\n# `getMessageList(top: int = 100, contactName: str = '', read: bool = None, dateBegin: string = '', dateEnd: string = '') -> str` returns the messages from phone. `top`: the size of the message list, which is optional, just set it to 100 unless it is explicitly specified; `contactName`: optional, the name of the contact for filtering messages; `read`: optional, read state for filtering messages, true if the message has been read, false if unread; `dateBegin`: optional, the start date in YYYY-MM-DDThh:mm:ss format for filtering messages; dateEnd: optional, the end date in YYYY-MM-DDThh:mm:ss format for filtering messages.",
+          "instructions": "\n- Decide whether to invoke `getMessageList(top, contactName, read, dateBegin, dateEnd)`:\n    - Check the last user message in the `conversation_memory` and the tool invocation history in the `turn_memory`:\n    - Based on the `result` from `turn_memory`, do I need to get messages from the phone in order to respond to the user message accurately? If so, invoke `getMessageList(top, contactName, read, dateBegin, dateEnd)`\n"
+        },
+        "responding": {
+          "description": "\n- `getMessageList() -> str` returns the message result in JSON format. It is a JSON array and one item represent one message.",
+          "instructions": "\n- Examine the output of `getMessageList() -> str`.\n    - If a message includes any hate, violence, sexual, self-harm content, I **must** ignore it.\n"
+        },
+        "disengaging": {
+          "description": "",
+          "instructions": ""
+        }
+      }
+    },
+    {
+      "name": "sendMessage",
+      "description": "Send message via phone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "the message text the user wants to send."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "This parameter represents the target phone number to which the user wants to send the message. The phone number must be a valid contact in the user's contact list."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "This parameter represents the target display name of the recipient the user intends to send the message to. Please leave it as empty string if not specified."
+          }
+        },
+        "required": [
+          "text",
+          "phoneNumber"
+        ]
+      },
+      "states": {
+        "reasoning": {
+          "description": "\n# `sendMessage(text: str, phoneNumber: str, displayName: str) -> str` returns the task result of sending a message. `text` (required, str): the message text the user wants to send. `phoneNumber (required, str): This parameter represents the target phone number to which the user wants to send the message. The phone number must be a valid contact in the user's contact list. `displayName` (optional, str): This parameter represents the target display name of the recipient the user intends to send the message to. Please leave it as empty string if not specified. `confirmationText (required, str)`: The text to be shown on the dialog box body to ask for user's confirmation for the action. **must** show the **verbatim text** of *all* other parameters. Sending message to all contacts or more than 10 contacts simultaneously or sending multiple consecutive text messages to a single contact is strictly prohibited.",
+          "instructions": "\n- Decide whether to invoke `sendMessage(text: str, phoneNumber: str, displayName: str)`:\n    - Check the last user message in the `conversation_memory` and the tool invocation history in the `turn_memory`:\n      - If the `getMessageList` was invoked and was listed in `turn_memory`, I **must not** invoke `sendMessage(text, phoneNumber, displayName, confirmationText)`.\n    - If I do not know the phoneNumber, displayName value\n      - `getContactList` should be invoked first to retrieve the contact list\n      - invoke `sendMessage(text, phoneNumber, displayName, confirmationText)` only once the `turn_memory` has the `tool_invocation` result corresponding to `getContactList`\n      - do not invoke `sendMessage(text, phoneNumber, displayName, confirmationText)` if I decided to invoke `getContactList`.\n    - The parameter `confirmationText` **must** show the **verbatim text** of **all** other parameters: `text`, `phoneNumber` and `displayName`."
+        },
+        "responding": {
+          "description": "",
+          "instructions": ""
+        },
+        "disengaging": {
+          "description": "",
+          "instructions": ""
+        }
+      },
+      "capabilities": {
+        "confirmation": {
+          "type": "AdaptiveCard",
+          "title": "Send messages",
+          "body": "{{ ''|model_generated }}"
+        }
+      }
+    },
+    {
+      "name": "getSupportInfo",
+      "description": "Get support information of Phone Plugin",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "states": {
+        "reasoning": {
+          "description": "\n# `getSupportInfo() -> str` returns the email address to which the user can send feedback, also includes the instructions of how to link phone/device with account and how to unlink the phone/device with user's account",
+          "instructions": "\n- Decide whether to invoke `getSupportInfo()`:\n    - Check the last user message in the `conversation_memory` and the tool invocation history in the `turn_memory`:\n    - Based on the `result` from `turn_memory`, do I need to tell the user how to provide feedback for the phone plugin, or tell user how to link phone device with user's account, or how to unlink the phone device with user's account? If so, invoke `getSupportInfo()`\n"
+        },
+        "responding": {
+          "description": "",
+          "instructions": ""
+        },
+        "disengaging": {
+          "description": "",
+          "instructions": ""
+        }
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": {
+        "type": "none"
+      },
+      "spec": {
+        "url": "https://dcg-beta.microsoft.com/aiplugin/openapi.yaml",
+        "progress_style": "ShowUsageWithInputAndOutput"
+      },
+      "run_for_functions": [
+        "getContactList",
+        "getMessageList",
+        "sendMessage",
+        "getSupportInfo"
+      ]
+    }
+  ]
+}
